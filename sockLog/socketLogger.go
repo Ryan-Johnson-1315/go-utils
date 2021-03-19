@@ -6,15 +6,19 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
+	"time"
 )
 
 var logger log.Logger
 var messages chan SocketMessage
+var logoPrinted bool
 
 func init() {
 	logger = log.Logger{}
 	log.SetFlags(log.Ldate | log.Ltime)
 	messages = make(chan SocketMessage, 100)
+	logoPrinted = false
 }
 
 // SetLogFormat ...
@@ -25,19 +29,37 @@ func SetLogFormat(flags int) {
 
 // StartLogger ...
 // Returns error if not started
-func StartLogger(ip string, port int) error {
+func StartLoggerUDP(ip string, port int) error {
 	sock, err := createSock(ip, port)
 	if err != nil {
 		return err
 	}
 
-	go printMessages()
-	go listenForMessages(sock)
+	if !logoPrinted {
+		fmt.Println(getLogo())
+	}
 
-	fmt.Println(getLogo())
-	log.Printf("%sSocket Logger is starting! Listening @ %s:%d%s", green, ip, port, reset)
+	// UDP Setup
+	go printMessages()
+	go listenForMessagesUDP(sock)
+
+	log.Printf("%sSocket UDP Logger is starting! Listening @ %s:%d%s", green, ip, port, reset)
 
 	return nil
+}
+
+// StartLoggerTCP ...
+// This allows the user to know if someone has disconnected
+func StartLoggerTCP(port int) {
+	go listenForConnections(port)
+
+	if !logoPrinted {
+		fmt.Println(getLogo())
+		go printMessages()
+	}
+
+	log.Printf("%sSocket TCP Logger is starting! Listening @ %s:%d%s", green, "127.0.0.1", port, reset)
+	time.Sleep(time.Second * 1) // Wait for socket to connect
 }
 
 type MessageLevel int
@@ -57,6 +79,7 @@ type SocketMessage struct {
 	MessageType MessageLevel `json:"level"`
 	Message     string       `json:"message"`
 	Function    string       `json:"function"`
+	Remote      string
 }
 
 //////////////////////////////////////////////////
@@ -71,6 +94,29 @@ const (
 
 	udpProtocol string = "udp"
 )
+
+const (
+	CONN_HOST = "localhost"
+	CONN_PORT = "3333"
+	CONN_TYPE = "tcp"
+)
+
+func listenForConnections(port int) {
+	l, err := net.Listen("tcp", "localhost:"+fmt.Sprint(port))
+	checkErr(err, "", true)
+
+	defer l.Close()
+	for {
+		// Listen for an incoming connection.
+		conn, err := l.Accept()
+		if err != nil {
+			fmt.Println("Error accepting: ", err.Error())
+			continue
+		}
+		// Handle connections in a new goroutine.
+		go listenForMessagesTCP(conn)
+	}
+}
 
 func (s *SocketMessage) getMessageAsString() string {
 	out := ""
@@ -91,11 +137,11 @@ func (s *SocketMessage) getMessageAsString() string {
 		out += reset
 	}
 
-	out += fmt.Sprintf("<%s::%s>  %s", s.Caller, s.Function, s.Message)
+	out += fmt.Sprintf("%s %s  %s[%s]", s.Caller, s.Function, s.Message, s.Remote)
 	return out + reset
 }
 
-func listenForMessages(sock *net.UDPConn) {
+func listenForMessagesUDP(sock *net.UDPConn) {
 	for {
 		bts := make([]byte, 1024)
 		sock.ReadFromUDP(bts)
@@ -106,10 +152,50 @@ func listenForMessages(sock *net.UDPConn) {
 			if err := json.Unmarshal(trimmed, &newMessage); err != nil {
 				log.Println("Error unmarshalling:", err)
 			} else {
+				// newMessage.Remote = sock.RemoteAddr().String()
 				messages <- newMessage
 			}
 		}
 	}
+}
+
+func listenForMessagesTCP(conn net.Conn) {
+	log.Printf("%sNew TCP connection added! Listening for messages%s\n", green, reset)
+	rmtAddr := conn.RemoteAddr().String()
+	buf := make([]byte, 1024)
+	for {
+		n, err := conn.Read(buf)
+		if err != nil {
+			log.Printf("%sERROR!! Could not read from TCP socket %s:%s%s\n", red, err, rmtAddr, reset)
+			conn.Close()
+			break
+		} else {
+			if n > 0 {
+				msg := SocketMessage{}
+				trimmed := bytes.Trim(buf[0:], "\x00")
+
+				if err := json.Unmarshal(trimmed, &msg); err != nil {
+					log.Println("Error unmarshalling:", err)
+				} else {
+					msg.Remote = conn.RemoteAddr().String()
+					messages <- msg
+				}
+			}
+		}
+	}
+	log.Printf("%sERROR!! Closed connection with %s%s\n", red, rmtAddr, reset)
+}
+
+func checkErr(err error, description string, shutdown bool) bool {
+	if err != nil {
+		log.Printf("%sERROR! %s %s%s\n", red, description, err, reset)
+
+		if shutdown {
+			os.Exit(1)
+		}
+	}
+
+	return err == nil
 }
 
 func printMessages() {
@@ -141,5 +227,6 @@ func getLogo() string {
         \/            \/     \/    \/             \/    /_____//_____/      \/       `
 	logo += "\n\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ ///////////////////////////////////////////\n"
 	logo += reset
+	logoPrinted = true
 	return logo
 }
