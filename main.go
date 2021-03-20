@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	"net"
 	"os"
 	"strings"
@@ -22,6 +23,9 @@ func main() {
 			fr.Tick()
 			time.Sleep(15 * time.Millisecond)
 		}
+	case "logger both":
+		sockLog.StartLoggerTCP(48000)
+		fallthrough
 	case "logger udp":
 		ip, port := "127.0.0.1", 50000
 		remoteAddr := &net.UDPAddr{
@@ -29,16 +33,18 @@ func main() {
 			IP:   net.ParseIP(ip),
 		}
 		if err := sockLog.StartLoggerUDP(ip, port); err == nil {
-			sockLog.SetLogFormat(log.Ldate | log.Ltime)
+			sockLog.SetLogFormat(log.Ldate | log.Ltime | log.Lmicroseconds)
 			addr := &net.UDPAddr{
 				Port: 50001,
 				IP:   net.ParseIP(ip),
 			}
 
-			log.Println("addr:", addr)
-
 			sock, _ := net.ListenUDP("udp", addr)
-			for c := 0; c < 100; c++ {
+			rand.Seed(time.Now().UnixNano())
+
+			for c := 0; c < 1500; c++ {
+				sl := rand.Intn(500)
+
 				msg := sockLog.SocketMessage{
 					Caller:      "Test Object",
 					MessageType: sockLog.MessageLevel(c % 5),
@@ -47,7 +53,7 @@ func main() {
 				}
 				bts, _ := json.Marshal(msg)
 				sock.WriteToUDP(bts, remoteAddr)
-				time.Sleep(time.Second * 1)
+				time.Sleep(time.Millisecond * time.Duration(sl))
 			}
 		}
 	case "logger tcp":

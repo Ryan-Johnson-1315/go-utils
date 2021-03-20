@@ -17,7 +17,7 @@ var logoPrinted bool
 func init() {
 	logger = log.Logger{}
 	log.SetFlags(log.Ldate | log.Ltime)
-	messages = make(chan SocketMessage, 100)
+	messages = make(chan SocketMessage, 500)
 	logoPrinted = false
 }
 
@@ -79,7 +79,8 @@ type SocketMessage struct {
 	MessageType MessageLevel `json:"level"`
 	Message     string       `json:"message"`
 	Function    string       `json:"function"`
-	Remote      string
+	remote      string
+	connType    string
 }
 
 //////////////////////////////////////////////////
@@ -137,7 +138,14 @@ func (s *SocketMessage) getMessageAsString() string {
 		out += reset
 	}
 
-	out += fmt.Sprintf("%s %s  %s[%s]", s.Caller, s.Function, s.Message, s.Remote)
+	if s.remote != "" {
+		out += fmt.Sprintf("[%s] ", s.remote)
+		s.connType = "TCP"
+	} else {
+		s.connType = "UDP"
+	}
+
+	out += fmt.Sprintf("<%s> %s::%s %s", s.connType, s.Caller, s.Function, s.Message)
 	return out + reset
 }
 
@@ -152,7 +160,6 @@ func listenForMessagesUDP(sock *net.UDPConn) {
 			if err := json.Unmarshal(trimmed, &newMessage); err != nil {
 				log.Println("Error unmarshalling:", err)
 			} else {
-				// newMessage.Remote = sock.RemoteAddr().String()
 				messages <- newMessage
 			}
 		}
@@ -177,7 +184,7 @@ func listenForMessagesTCP(conn net.Conn) {
 				if err := json.Unmarshal(trimmed, &msg); err != nil {
 					log.Println("Error unmarshalling:", err)
 				} else {
-					msg.Remote = conn.RemoteAddr().String()
+					msg.remote = conn.RemoteAddr().String()
 					messages <- msg
 				}
 			}
