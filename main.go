@@ -23,9 +23,6 @@ func main() {
 			fr.Tick()
 			time.Sleep(15 * time.Millisecond)
 		}
-	case "logger both":
-		sockLog.StartLoggerTCP(48000)
-		fallthrough
 	case "logger udp":
 		ip, port := "127.0.0.1", 50000
 		remoteAddr := &net.UDPAddr{
@@ -34,12 +31,10 @@ func main() {
 		}
 		if err := sockLog.StartLoggerUDP(ip, port); err == nil {
 			sockLog.SetLogFormat(log.Ldate | log.Ltime | log.Lmicroseconds)
-			addr := &net.UDPAddr{
-				Port: 50001,
-				IP:   net.ParseIP(ip),
+			l, err := sockLog.NewUDPSocketLoggerConnection("127.0.0.1", remoteAddr)
+			if err != nil {
+				log.Fatal(err)
 			}
-
-			sock, _ := net.ListenUDP("udp", addr)
 			rand.Seed(time.Now().UnixNano())
 
 			for c := 0; c < 1500; c++ {
@@ -51,8 +46,7 @@ func main() {
 					Message:     "This is a test message!",
 					Function:    "main()",
 				}
-				bts, _ := json.Marshal(msg)
-				sock.WriteToUDP(bts, remoteAddr)
+				l.SendSocketMessage(msg)
 				time.Sleep(time.Millisecond * time.Duration(sl))
 			}
 		}
@@ -79,6 +73,6 @@ func main() {
 		time.Sleep(time.Second * 15)
 	default:
 		fmt.Println("USAGE")
-		fmt.Println("\t go run . [fps]")
+		fmt.Println("\t go run . [fps | logger udp | logger tcp]")
 	}
 }
