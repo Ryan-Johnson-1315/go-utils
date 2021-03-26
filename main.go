@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
@@ -53,23 +52,33 @@ func main() {
 	case "logger tcp":
 		sockLog.StartLoggerTCP(48000)
 
-		service := "127.0.0.1:48000"
-		tcpAddr, _ := net.ResolveTCPAddr("tcp", service)
+		// service := "127.0.0.1:48000"
+		// tcpAddr, _ := net.ResolveTCPAddr("tcp", service)
 
-		conn, _ := net.DialTCP("tcp", nil, tcpAddr)
+		// conn, _ := net.DialTCP("tcp", nil, tcpAddr)
+		l1, err := sockLog.NewTCPSocketLoggerConnection("127.0.0.1", 48000)
+		if err != nil {
+			log.Fatal(err)
+		}
+		l2, errr := sockLog.NewTCPSocketLoggerConnection("127.0.0.1", 48000)
+		if errr != nil {
+			log.Fatal(errr)
+		}
 
-		for c := 0; c < 15; c++ {
+		for c := 0; c < 15000; c++ {
 			msg := sockLog.SocketMessage{
 				Caller:      "Test Object",
 				MessageType: sockLog.MessageLevel(c % 5),
 				Message:     "This is a test message!",
 				Function:    "main()",
 			}
-			bts, _ := json.Marshal(msg)
-			conn.Write(bts)
-			time.Sleep(time.Second * 1)
+			l1.SendSocketMessage(msg)
+			l2.SendSocketMessage(msg)
+			// bts, _ := json.Marshal(msg)
+			// conn.Write(bts)
+			// time.Sleep(time.Second * 1)
 		}
-		conn.Close()
+		// conn.Close()
 		time.Sleep(time.Second * 15)
 	default:
 		fmt.Println("USAGE")

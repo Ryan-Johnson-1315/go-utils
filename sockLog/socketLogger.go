@@ -169,8 +169,8 @@ func listenForMessagesUDP(sock *net.UDPConn) {
 func listenForMessagesTCP(conn net.Conn) {
 	log.Printf("%sNew TCP connection added! Listening for messages%s\n", green, reset)
 	rmtAddr := conn.RemoteAddr().String()
-	buf := make([]byte, 1024)
 	for {
+		buf := make([]byte, 1024)
 		n, err := conn.Read(buf)
 		if err != nil {
 			log.Printf("%sERROR!! Could not read from TCP socket %s:%s%s\n", red, err, rmtAddr, reset)
