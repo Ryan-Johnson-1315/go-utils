@@ -96,12 +96,6 @@ const (
 	udpProtocol string = "udp"
 )
 
-const (
-	CONN_HOST = "localhost"
-	CONN_PORT = "3333"
-	CONN_TYPE = "tcp"
-)
-
 func listenForConnections(port int) {
 	l, err := net.Listen("tcp", "localhost:"+fmt.Sprint(port))
 	checkErr(err, "", true)
