@@ -108,7 +108,7 @@ func listenForConnections(port int) {
 			fmt.Println("Error accepting: ", err.Error())
 			continue
 		}
-		// Handle connections in a new goroutine.
+		// Handle connections in a new goroutine.<%s>
 		go listenForMessagesTCP(conn)
 	}
 }
@@ -139,13 +139,13 @@ func (s *SocketMessage) getMessageAsString() string {
 		s.connType = "UDP"
 	}
 
-	out += fmt.Sprintf("<%s> %s::%s %s", s.connType, s.Caller, s.Function, s.Message)
+	out += fmt.Sprintf("<%s> %s::%s->%s", s.connType, s.Caller, s.Function, s.Message)
 	return out + reset
 }
 
 func listenForMessagesUDP(sock *net.UDPConn) {
-	for {
-		bts := make([]byte, 1024)
+	for { 
+		bts := make([]byte, 32768)
 		sock.ReadFromUDP(bts)
 		if len(bts) > 0 {
 			trimmed := bytes.Trim(bts, "\x00")

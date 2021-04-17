@@ -52,10 +52,6 @@ func main() {
 	case "logger tcp":
 		sockLog.StartLoggerTCP(48000)
 
-		// service := "127.0.0.1:48000"
-		// tcpAddr, _ := net.ResolveTCPAddr("tcp", service)
-
-		// conn, _ := net.DialTCP("tcp", nil, tcpAddr)
 		l1, err := sockLog.NewTCPSocketLoggerConnection("127.0.0.1", 48000)
 		if err != nil {
 			log.Fatal(err)
@@ -74,11 +70,7 @@ func main() {
 			}
 			l1.SendSocketMessage(msg)
 			l2.SendSocketMessage(msg)
-			// bts, _ := json.Marshal(msg)
-			// conn.Write(bts)
-			// time.Sleep(time.Second * 1)
 		}
-		// conn.Close()
 		time.Sleep(time.Second * 15)
 	default:
 		fmt.Println("USAGE")
