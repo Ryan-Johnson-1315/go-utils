@@ -40,9 +40,10 @@ func NewSocketLoggerConnection(ip string, port int) (SocketLoggerConnection, err
 
 // SendMessage ...
 // Builds a SocketMessage and sends it over the tcp socket
-func (t *SocketLoggerConnection) SendMessage(lvl MessageLevel, caller, msg string, args ...interface{}) {
+func (t *SocketLoggerConnection) SendMessage(lvl MessageLevel, caller, function, msg string, args ...interface{}) {
 	t.messageChanneler <- SocketMessage{
 		Caller:      caller,
+		Function:    function,
 		MessageType: lvl,
 		Message:     fmt.Sprintf(msg, args...),
 	}

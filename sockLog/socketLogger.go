@@ -142,7 +142,7 @@ func (s *SocketMessage) getMessageAsString() string {
 		s.connType = "UDP"
 	}
 
-	out := fmt.Sprintf("%s  %s", s.Caller, s.Message)
+	out := fmt.Sprintf("| %s::%s -- %s", s.Caller, s.Function, s.Message)
 	return out + reset
 }
 

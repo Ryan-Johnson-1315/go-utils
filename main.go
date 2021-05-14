@@ -33,8 +33,8 @@ func main() {
 		}
 
 		for c := 0; c < 15000; c++ {
-			l1.SendMessage(sockLog.MessageLevel(c%5), "main.go::main()", "This is a test %s from l1!!", "message")
-			l2.SendMessage(sockLog.MessageLevel(c%5), "main.go::main()", "This is a test %s from l2!!", "message")
+			l1.SendMessage(sockLog.MessageLevel(c%5), "main.go", "main()", "This is a test %s from l1!!", "message")
+			l2.SendMessage(sockLog.MessageLevel(c%5), "main.go", "main()", "This is a test %s from l2!!", "message")
 		}
 		time.Sleep(time.Second * 15)
 	default:
