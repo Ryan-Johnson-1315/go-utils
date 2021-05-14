@@ -113,7 +113,7 @@ func listenForConnections(port int) {
 	}
 }
 
-func (s *SocketMessage) getMessageAsString() string {
+func (s *SocketMessage) getColor() string {
 	out := ""
 	switch s.MessageType {
 	case MessageLevelWarn:
@@ -131,20 +131,23 @@ func (s *SocketMessage) getMessageAsString() string {
 	default: // MessageLevelLog
 		out += reset
 	}
+	return out
+}
 
+func (s *SocketMessage) getMessageAsString() string {
+	// out := s.getColor()
 	if s.remote != "" {
-		out += fmt.Sprintf("[%s] ", s.remote)
 		s.connType = "TCP"
 	} else {
 		s.connType = "UDP"
 	}
 
-	out += fmt.Sprintf("<%s> %s::%s->%s", s.connType, s.Caller, s.Function, s.Message)
+	out := fmt.Sprintf("%s  %s", s.Caller, s.Message)
 	return out + reset
 }
 
 func listenForMessagesUDP(sock *net.UDPConn) {
-	for { 
+	for {
 		bts := make([]byte, 32768)
 		sock.ReadFromUDP(bts)
 		if len(bts) > 0 {
@@ -161,7 +164,6 @@ func listenForMessagesUDP(sock *net.UDPConn) {
 }
 
 func listenForMessagesTCP(conn net.Conn) {
-	log.Printf("%sNew TCP connection added! Listening for messages%s\n", green, reset)
 	rmtAddr := conn.RemoteAddr().String()
 	for {
 		buf := make([]byte, 1024)
@@ -201,9 +203,9 @@ func checkErr(err error, description string, shutdown bool) bool {
 
 func printMessages() {
 	for msg := range messages { // Detects if channel is closed
+		log.SetPrefix(msg.getColor())
 		log.Println(msg.getMessageAsString())
 	}
-	log.Println("Clossing down printMessages()")
 }
 
 func createIPAddr(ip string, port int) *net.UDPAddr {
